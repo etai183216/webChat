@@ -2,8 +2,11 @@
 ```
 線上1對1聊天室的後端，用來練習mongoDB、Websocket、Token...等技術
 ```
+### 資料庫結構
+```
+只有UserList及ChatList兩個collection，顧名思義就是用來記錄聊天內容及使用者帳號密碼而已。
 
-### 資料庫使用mongoDB
+```
 
 ### ChatList結構
 ```
