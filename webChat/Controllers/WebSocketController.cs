@@ -79,13 +79,16 @@ public class WebSocketController : Controller
                 //再將Json字串轉為可被緩衝區所使用的byte[]類型
                 var dataBytes = Encoding.UTF8.GetBytes(serializedData);
                 //將結果送出
-                var nowWebsocket = ConnectingUser[member];
-                //用對應到的websocket物件送出訊息
-                await nowWebsocket.SendAsync(
-                    new ArraySegment<byte>(dataBytes),
-                    receiveResult.MessageType,
-                    receiveResult.EndOfMessage,
-                    CancellationToken.None);
+                if(ConnectingUser.ContainsKey(member))
+                {
+                    var nowWebsocket = ConnectingUser[member];
+                    //用對應到的websocket物件送出訊息
+                    await nowWebsocket.SendAsync(
+                        new ArraySegment<byte>(dataBytes),
+                        receiveResult.MessageType,
+                        receiveResult.EndOfMessage,
+                        CancellationToken.None);
+                }
             }
             //清空陣列
             buffer = new byte[1024*4];
