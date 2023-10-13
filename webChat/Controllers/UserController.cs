@@ -6,7 +6,6 @@ using System.Security.Claims;
 using System.Text;
 using webChat.EntryModels;
 using webChat.Services;
-
 namespace webChat.Controllers;
 
 [Route("[controller]")]

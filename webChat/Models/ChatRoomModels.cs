@@ -19,5 +19,8 @@ namespace webChat.Models
 
         [BsonElement("chat")]
         public List<ChatModel> chat { get; set; } = new List<ChatModel>();
+
+        [BsonElement("chatRoomName")]
+        public string? chatRoomName { get; set; } = "";
     }
 }

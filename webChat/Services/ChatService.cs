@@ -27,18 +27,16 @@ namespace webChat.Services
             return results;
         }
 
-
-
         //------------------------------使用者在聊天室送出訊息
         public async Task<List<ChatRoomModels>> CreateChat(string _objectContent,string _chatRoomId)
         {
             ChatModel? receivedObject = Newtonsoft.Json.JsonConvert.DeserializeObject<ChatModel>(_objectContent);
 
-            var filter = Builders<ChatRoomModels>.Filter.Eq("_id", ObjectId.Parse(_chatRoomId));
-            var update = Builders<ChatRoomModels>.Update.Push("chat", receivedObject);
+            FilterDefinition<ChatRoomModels> filter = Builders<ChatRoomModels>.Filter.Eq("_id", ObjectId.Parse(_chatRoomId));
+            UpdateDefinition<ChatRoomModels> update = Builders<ChatRoomModels>.Update.Push("chat", receivedObject);//插入資料列
             await _chatCollection.UpdateOneAsync(filter, update);
-
-            var updateTime = Builders<ChatRoomModels>.Update.Set(x => x.UpdateTime,DateTime.Now);
+           
+            UpdateDefinition<ChatRoomModels> updateTime = Builders<ChatRoomModels>.Update.Set(x => x.UpdateTime,DateTime.Now);//更新時間
             await _chatCollection.UpdateOneAsync(filter, updateTime);
 
             return await _chatCollection.FindSync(filter).ToListAsync();

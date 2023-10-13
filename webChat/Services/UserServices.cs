@@ -30,10 +30,12 @@ namespace webChat.Services
         {
             //用帳號去資料表搜尋有沒有這個會員，如果有的話就撈出來
             var data = await _userCollection.Find(x => x.Account==_account).ToListAsync();
+
             //如果data沒有先確認有沒有內容就去拿[0]會報錯。
-            if (data.Any())
+            if (!data.Any()) return String.Empty;
+            else
             {
-                if (data[0].Password != _pw) return String.Empty;
+                if (data[0].Password != _pw) return String.Empty;//字串
             }
 
             var claims = new List<Claim>
