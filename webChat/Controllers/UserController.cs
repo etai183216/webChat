@@ -16,6 +16,7 @@ public class UserController:ControllerBase
     private readonly  UserServices _userServices;
     public UserController(UserServices userServices) => _userServices = userServices;
 
+    [AllowAnonymous]
     [HttpPost("/login")]
     public async Task<string> UserLogin(LoginEntry _loginEntry) 
     {

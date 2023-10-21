@@ -14,5 +14,8 @@ namespace webChat.Models
 
         [BsonElement("pw")]
         public string Password { get; set; } = "";
+
+        [BsonElement("nickName")]
+        public string nickName { get; set; } = "";
     }
 }
