@@ -11,20 +11,23 @@ using MongoDB.Driver;
 using Amazon.Runtime.Internal.Util;
 using System.Security.Principal;
 using Microsoft.AspNetCore.Authorization;
+using webChat.ViewModels;
+using System.Reflection.Metadata.Ecma335;
+using static MongoDB.Bson.Serialization.Serializers.SerializerHelper;
 
 namespace webChat.Controllers;
 
 public class WebSocketController : Controller
 {
     private readonly ChatService _chatService;
-    public WebSocketController(ChatService chatService) => _chatService = chatService;
+    private readonly ChatRoomService _chatRoomService;
     public static Dictionary<string, WebSocket> ConnectingUser { get; set; } = new Dictionary<string, WebSocket>();
     public string nowUser = "";
 
-    enum EntryType : int
+    public WebSocketController(ChatService chatService,ChatRoomService chatRoomService) 
     {
-        SendingMessage = 0,
-        RequiredAllMessage = 1,
+        _chatService = chatService;
+        _chatRoomService = chatRoomService;
     }
 
     [HttpGet("/verification")]
@@ -67,21 +70,20 @@ public class WebSocketController : Controller
         //進入監聽迴圈，一直到接收到的訊息中的CloseStatus有值，這個值是主動斷開連結的那一端會給上。
         while (!receiveResult.CloseStatus.HasValue)
         {
-
             //將收到、放在緩衝區的資料解碼(Encoding)成字串。
             string receivedMessage = Encoding.UTF8.GetString(buffer);
             //將字串再轉成SendEntry，是一個自己定義的入口模型，屬性type是用來做路由識別的。
-            SendEntry? receivedObject = new SendEntry { };
-            receivedObject = Newtonsoft.Json.JsonConvert.DeserializeObject<SendEntry>(receivedMessage);
+            SendEntry? receivedObject = Newtonsoft.Json.JsonConvert.DeserializeObject<SendEntry>(receivedMessage);
+            if (receivedObject == null) continue;
 
+             EntryType requiredType = receivedObject.Type;
             //進入路由，路由中會透過屬性type決定要進入哪個function，並將結果回傳出來
-            var members = await wsRouter(receivedObject);
+            (List<string> members ,SendModel preSendModel) = await wsRouter(receivedObject);
 
-            foreach (var member in members)
+            foreach (string member in members)
             {
-                var temp = await _chatService.GetAsync(member);
                 //將物件轉為Json字串
-                var serializedData = Newtonsoft.Json.JsonConvert.SerializeObject(temp);
+                var serializedData = Newtonsoft.Json.JsonConvert.SerializeObject(preSendModel);
                 //再將Json字串轉為可被緩衝區所使用的byte[]類型
                 var dataBytes = Encoding.UTF8.GetBytes(serializedData);
                 //將結果送出
@@ -107,22 +109,23 @@ public class WebSocketController : Controller
         ConnectingUser.Remove(nowUser);
     }
 
-    private async Task<List<string>> wsRouter(SendEntry? _receivedObject)
+    private async Task<(List<string>,SendModel)> wsRouter(SendEntry? _receivedObject)
     {
         //防呆，如果進來是空值就返回
-        if (_receivedObject == null) return new List<string> { };
+        if (_receivedObject == null) return (new List<string>(), new SendModel());
         //先將receivedObject.Type讀值存進變數routerFlag中，避免導向過程中重複讀取。
-        string routerFlag = _receivedObject.Type;
+        EntryType routerFlag = _receivedObject.Type;
         //開始路由判斷
-        //如果是sendMessage代表客戶端送來的訊息是他發送訊息到某個對話
-        if (routerFlag == "sendMessage")
+        //如果是SendingMessage代表客戶端送來的訊息是他發送訊息到某個對話
+        if (routerFlag == EntryType.SendingMessage)
         {
-            var result = await _chatService.CreateChat(_receivedObject.ContentObject, _receivedObject.ChatRoomId);
-            return result[0].Member;
-        }
-        //如果是requireMessage代表送來的訊息是單純要求更新聊天室
-        else
-            return new List<string> { _receivedObject.ContentObject };
+            return await _chatService.InsertChatAsync(_receivedObject.ContentObject, _receivedObject.ChatRoomId);
 
+        }
+        //如果是RequiredAllMessage代表送來的訊息是要求所有訊息
+        else if (routerFlag == EntryType.RequiredAllMessage)
+            return await _chatRoomService.GetMemberChatRoomAsync(_receivedObject.ContentObject);
+        else
+            return (new List<string>(), new SendModel());
     }
 }

@@ -1,9 +1,11 @@
 using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.AspNetCore.Mvc.Authorization;
+using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Options;
 using Microsoft.IdentityModel.Tokens;
 using MongoDB.Driver;
 using System.Text;
+using webChat.Controllers;
 using webChat.Models;
 using webChat.Services;
 
@@ -11,9 +13,10 @@ var builder = WebApplication.CreateBuilder(args);
 builder.Services.Configure<MongoDBSetting>(builder.Configuration.GetSection("chatDB"));
 builder.Services.AddSingleton<ChatService>();
 builder.Services.AddSingleton<UserServices>();
+builder.Services.AddSingleton<ChatRoomService>();
 // Add services to the container.
 builder.Services.AddControllers();
-
+builder.Services.AddSingleton<WebSocketController>();
 builder.Services.AddEndpointsApiExplorer();
 builder.Services.AddSwaggerGen();
 builder.Services.AddDistributedMemoryCache();
@@ -51,8 +54,6 @@ var webSocketOptions = new WebSocketOptions
 {
     //Proxy 保持連線開啟的頻率。 預設為兩分鐘
     KeepAliveInterval = TimeSpan.FromMinutes(2)
-    //WebSocket 要求之允許 Origin 標頭值的清單
-    //AllowedOrigins 
 };
 app.UseWebSockets(webSocketOptions);
 app.UseCors();
@@ -64,9 +65,7 @@ if (app.Environment.IsDevelopment())
 }
 
 app.UseHttpsRedirection();
-
 app.UseRouting();
-
 app.UseAuthentication();
 app.UseAuthorization();
 

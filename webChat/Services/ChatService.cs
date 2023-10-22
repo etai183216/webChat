@@ -4,6 +4,9 @@ using MongoDB.Driver;
 using MongoDB.Bson;
 using System.ComponentModel;
 using Amazon.Runtime.Internal;
+using webChat.ViewModels;
+using System.Linq;
+using Newtonsoft.Json;
 
 namespace webChat.Services
 {
@@ -19,27 +22,35 @@ namespace webChat.Services
             _chatCollection = mongoDatabase.GetCollection<ChatRoomModels>(mongoDBSetting.Value.ChatCollectionName);
         }
 
-        public async Task<List<ChatRoomModels>> GetAsync(string _account)
-        {
-            var filter = Builders<ChatRoomModels>.Filter.AnyEq(x => x.Member, _account);
-            var results = await _chatCollection.Find(filter).ToListAsync();
-
-            return results;
-        }
 
         //------------------------------使用者在聊天室送出訊息
-        public async Task<List<ChatRoomModels>> CreateChat(string _objectContent,string _chatRoomId)
+        public async Task<(List<string>,SendModel)> InsertChatAsync(string _objectContent,string _chatRoomId)
         {
             ChatModel? receivedObject = Newtonsoft.Json.JsonConvert.DeserializeObject<ChatModel>(_objectContent);
 
+            if (receivedObject == null) return (new List<string>(),new SendModel());
+            
+
+            //以objectId找出聊天室 再insert 一筆對話紀錄
             FilterDefinition<ChatRoomModels> filter = Builders<ChatRoomModels>.Filter.Eq("_id", ObjectId.Parse(_chatRoomId));
             UpdateDefinition<ChatRoomModels> update = Builders<ChatRoomModels>.Update.Push("chat", receivedObject);//插入資料列
             await _chatCollection.UpdateOneAsync(filter, update);
            
-            UpdateDefinition<ChatRoomModels> updateTime = Builders<ChatRoomModels>.Update.Set(x => x.UpdateTime,DateTime.Now);//更新時間
+            //更新聊天室最後更新時間
+            UpdateDefinition<ChatRoomModels> updateTime = Builders<ChatRoomModels>.Update.Set(x => x.UpdateTime, receivedObject.ChatTime);//更新時間
             await _chatCollection.UpdateOneAsync(filter, updateTime);
 
-            return await _chatCollection.FindSync(filter).ToListAsync();
+            ProjectionDefinition<ChatRoomModels> projection =  Builders<ChatRoomModels>.Projection.Include(x => x.Member);
+            BsonDocument result = _chatCollection.Find(filter).Project(projection).FirstOrDefault();
+
+            
+            //生成return value
+            SendModel res = new SendModel();
+            List<string> members = result.AsBsonArray.Select(item => item.AsString).ToList();
+            res.contentObject = JsonConvert.SerializeObject(receivedObject);
+            res.entryTypeCode = EntryType.SendingMessage;
+
+            return (members,res);
         }
     }
 }

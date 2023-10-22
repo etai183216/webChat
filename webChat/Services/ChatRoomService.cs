@@ -5,6 +5,8 @@ using MongoDB.Bson;
 using System.ComponentModel;
 using Amazon.Runtime.Internal;
 using webChat.EntryModels;
+using webChat.ViewModels;
+using Newtonsoft.Json;
 
 namespace webChat.Services
 {
@@ -20,11 +22,22 @@ namespace webChat.Services
             _chatCollection = mongoDatabase.GetCollection<ChatRoomModels>(mongoDBSetting.Value.ChatCollectionName);
         }
 
-        /// <summary>
-        /// 對資料庫進行操作的funciton
-        /// </summary>
-        /// <param name="CreateChatRoomObj"></param>
-        /// <returns></returns>
+
+        public async Task<(List<string>, SendModel)> GetMemberChatRoomAsync(string _account)
+        {
+            var filter = Builders<ChatRoomModels>.Filter.AnyEq(x => x.Member, _account);
+            var results = await _chatCollection.Find(filter).ToListAsync();
+
+            //生成return value
+            SendModel res = new SendModel();
+            List<string> members = new List<string>() { _account };
+            res.contentObject = JsonConvert.SerializeObject(results);
+            res.entryTypeCode = EntryType.SendingMessage;
+
+            return (members, res);
+
+        }
+
         public async Task<string> CreateChatRoom(CreateChatRoomEntry CreateChatRoomObj)
         {
             if (CreateChatRoomObj == null) return "0"; 
