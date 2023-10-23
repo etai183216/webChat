@@ -6,6 +6,8 @@ using System.Security.Claims;
 using System.Text;
 using webChat.EntryModels;
 using webChat.Services;
+using webChat.ViewModels;
+
 namespace webChat.Controllers;
 
 [Route("[controller]")]
@@ -18,11 +20,16 @@ public class UserController:ControllerBase
 
     [AllowAnonymous]
     [HttpPost("/login")]
-    public async Task<string> UserLogin(LoginEntry _loginEntry) 
+    public async Task<ApiReturnModel> UserLoginAsync(LoginEntry _loginEntry) 
     {
-        if (_loginEntry == null || _loginEntry.Account == "" || _loginEntry.Password == "") return "";
+        ApiReturnModel resObj =  new ApiReturnModel();
+        if (_loginEntry == null || _loginEntry.Account == "" || _loginEntry.Password == "") return resObj;
         
-        return await _userServices.UserLogin(_loginEntry.Account, _loginEntry.Password);
+        resObj.contentObject = await _userServices.UserLoginGetToken(_loginEntry.Account, _loginEntry.Password);
+
+        resObj.status = resObj.contentObject == "" ? MyEnum.ApiStatusCode.Error : MyEnum.ApiStatusCode.Success;
+
+        return resObj;
         
     }
 

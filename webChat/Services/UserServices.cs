@@ -26,7 +26,7 @@ namespace webChat.Services
         }
 
         //登入時Controller會呼叫這個function進行驗證
-        public async Task<string> UserLogin(string _account,string _pw) 
+        public async Task<string> UserLoginGetToken(string _account,string _pw) 
         {
             //用帳號去資料表搜尋有沒有這個會員，如果有的話就撈出來
             var data = await _userCollection.Find(x => x.Account==_account).ToListAsync();

@@ -31,9 +31,12 @@ public class WebSocketController : Controller
     }
 
     [HttpGet("/verification")]
-    public bool verification()
+    public  ApiReturnModel verification()
     {
-        return true;
+        ApiReturnModel resObj =  new ApiReturnModel();
+        resObj.status = MyEnum.ApiStatusCode.Success;
+        resObj.contentObject = "true";
+        return resObj;
     }
 
     [AllowAnonymous]
@@ -76,7 +79,7 @@ public class WebSocketController : Controller
             SendEntry? receivedObject = Newtonsoft.Json.JsonConvert.DeserializeObject<SendEntry>(receivedMessage);
             if (receivedObject == null) continue;
 
-             EntryType requiredType = receivedObject.Type;
+             MyEnum.EntryType requiredType = receivedObject.Type;
             //進入路由，路由中會透過屬性type決定要進入哪個function，並將結果回傳出來
             (List<string> members ,SendModel preSendModel) = await wsRouter(receivedObject);
 
@@ -114,16 +117,13 @@ public class WebSocketController : Controller
         //防呆，如果進來是空值就返回
         if (_receivedObject == null) return (new List<string>(), new SendModel());
         //先將receivedObject.Type讀值存進變數routerFlag中，避免導向過程中重複讀取。
-        EntryType routerFlag = _receivedObject.Type;
+        MyEnum.EntryType routerFlag = _receivedObject.Type;
         //開始路由判斷
         //如果是SendingMessage代表客戶端送來的訊息是他發送訊息到某個對話
-        if (routerFlag == EntryType.SendingMessage)
-        {
+        if (routerFlag == MyEnum.EntryType.SendingMessage)
             return await _chatService.InsertChatAsync(_receivedObject.ContentObject, _receivedObject.ChatRoomId);
-
-        }
         //如果是RequiredAllMessage代表送來的訊息是要求所有訊息
-        else if (routerFlag == EntryType.RequiredAllMessage)
+        else if (routerFlag == MyEnum.EntryType.RequiredAllMessage)
             return await _chatRoomService.GetMemberChatRoomAsync(_receivedObject.ContentObject);
         else
             return (new List<string>(), new SendModel());

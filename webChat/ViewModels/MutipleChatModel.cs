@@ -8,7 +8,7 @@ namespace webChat.ViewModels
 {
     public class MutipleChatModel
     {
-        public EntryType entryTypeCode { get; set; } = 0;
+        public MyEnum.EntryType entryTypeCode { get; set; } = 0;
         public List<ChatRoomModels> chatRooms { get; set; } = new List<ChatRoomModels>();
     }
 }

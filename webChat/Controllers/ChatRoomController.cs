@@ -11,6 +11,7 @@ using MongoDB.Driver;
 using Amazon.Runtime.Internal.Util;
 using System.Security.Principal;
 using Microsoft.AspNetCore.Authorization;
+using webChat.ViewModels;
 
 namespace webChat.Controllers;
 
@@ -23,12 +24,13 @@ public class ChatRoomController : ControllerBase
     public ChatRoomController(ChatRoomService chatRoomService) => _chatRoomService = chatRoomService;
 
     [HttpPost("/CreateChatRoom")]
-    public async Task<string> CreateChatRoom(CreateChatRoomEntry _createChatRoomEntry)
+    public async Task<ApiReturnModel> CreateChatRoom(CreateChatRoomEntry _createChatRoomEntry)
     {
-        if (_createChatRoomEntry == null) return "0";
-        if ((_createChatRoomEntry.members.Count == 0) || _createChatRoomEntry.ChatRoomName == "") return "0";
-        string res = await _chatRoomService.CreateChatRoom(_createChatRoomEntry);
-        return res;
+        
+        if (_createChatRoomEntry == null) return new ApiReturnModel();
+        if ((_createChatRoomEntry.members.Count == 0) || _createChatRoomEntry.ChatRoomName == "") return new ApiReturnModel();
+
+        return await _chatRoomService.CreateChatRoomAsync(_createChatRoomEntry);
     }
 
 }

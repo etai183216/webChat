@@ -7,6 +7,7 @@ using Amazon.Runtime.Internal;
 using webChat.ViewModels;
 using System.Linq;
 using Newtonsoft.Json;
+using MongoDB.Bson.Serialization;
 
 namespace webChat.Services
 {
@@ -29,11 +30,15 @@ namespace webChat.Services
             ChatModel? receivedObject = Newtonsoft.Json.JsonConvert.DeserializeObject<ChatModel>(_objectContent);
 
             if (receivedObject == null) return (new List<string>(),new SendModel());
-            
+
+            ChatModel tempChatModel = new ChatModel();
+            tempChatModel.Sender = receivedObject.Sender;
+            tempChatModel.ChatTime = receivedObject.ChatTime;
+            tempChatModel.Content = receivedObject.Content;
 
             //以objectId找出聊天室 再insert 一筆對話紀錄
             FilterDefinition<ChatRoomModels> filter = Builders<ChatRoomModels>.Filter.Eq("_id", ObjectId.Parse(_chatRoomId));
-            UpdateDefinition<ChatRoomModels> update = Builders<ChatRoomModels>.Update.Push("chat", receivedObject);//插入資料列
+            UpdateDefinition<ChatRoomModels> update = Builders<ChatRoomModels>.Update.Push("chat", tempChatModel);//插入資料列
             await _chatCollection.UpdateOneAsync(filter, update);
            
             //更新聊天室最後更新時間
@@ -43,12 +48,11 @@ namespace webChat.Services
             ProjectionDefinition<ChatRoomModels> projection =  Builders<ChatRoomModels>.Projection.Include(x => x.Member);
             BsonDocument result = _chatCollection.Find(filter).Project(projection).FirstOrDefault();
 
-            
             //生成return value
             SendModel res = new SendModel();
-            List<string> members = result.AsBsonArray.Select(item => item.AsString).ToList();
+            List<string> members = result.Select(item => item.ToString()).ToList();
             res.contentObject = JsonConvert.SerializeObject(receivedObject);
-            res.entryTypeCode = EntryType.SendingMessage;
+            res.entryTypeCode = MyEnum.EntryType.SendingMessage;
 
             return (members,res);
         }

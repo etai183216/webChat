@@ -7,6 +7,7 @@ using Amazon.Runtime.Internal;
 using webChat.EntryModels;
 using webChat.ViewModels;
 using Newtonsoft.Json;
+using System.Security.Principal;
 
 namespace webChat.Services
 {
@@ -32,31 +33,34 @@ namespace webChat.Services
             SendModel res = new SendModel();
             List<string> members = new List<string>() { _account };
             res.contentObject = JsonConvert.SerializeObject(results);
-            res.entryTypeCode = EntryType.SendingMessage;
+            res.entryTypeCode = MyEnum.EntryType.RequiredAllMessage;
 
             return (members, res);
 
         }
 
-        public async Task<string> CreateChatRoom(CreateChatRoomEntry CreateChatRoomObj)
-        {
-            if (CreateChatRoomObj == null) return "0"; 
-            if ((CreateChatRoomObj.ChatRoomName=="")||(CreateChatRoomObj.members.Count==0)) return "0";
 
-            try
+        public async Task<ApiReturnModel> CreateChatRoomAsync(CreateChatRoomEntry CreateChatRoomObj)
+        {
+            ApiReturnModel resObj = new ApiReturnModel();
+            if (CreateChatRoomObj == null || CreateChatRoomObj.userId==""|| CreateChatRoomObj.ChatRoomName == "" || CreateChatRoomObj.members.Count == 0)
             {
-                ChatRoomModels tempModel = new ChatRoomModels();
-                tempModel.chat = new List<ChatModel>();
-                tempModel.Member = CreateChatRoomObj.members;
-                tempModel.chatRoomName = CreateChatRoomObj.ChatRoomName;
-                await _chatCollection.InsertOneAsync(tempModel);
+                resObj.status = MyEnum.ApiStatusCode.Error;
+                return resObj;
             }
-            catch (Exception ex) 
-            {
-                return ex.Message;
-            }
-            
-            return "1";
+
+            ChatRoomModels tempModel = new ChatRoomModels();
+            tempModel.chat = new List<ChatModel>();
+            tempModel.Member = CreateChatRoomObj.members;
+            tempModel.chatRoomName = CreateChatRoomObj.ChatRoomName;
+            await _chatCollection.InsertOneAsync(tempModel);
+
+            var filter = Builders<ChatRoomModels>.Filter.AnyEq(x => x.Member, CreateChatRoomObj.userId);
+            var results = await _chatCollection.Find(filter).ToListAsync();
+            resObj.contentObject = JsonConvert.SerializeObject(results);
+            resObj.status = MyEnum.ApiStatusCode.Success;
+
+            return resObj;
         }
     }
 }
