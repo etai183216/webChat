@@ -13,21 +13,21 @@ namespace webChat.Services
 {
     public class ChatRoomService
     {
-        private readonly IMongoCollection<ChatRoomModels> _chatCollection;
+        private readonly IMongoCollection<ChatRoomModels> _chatRoomCollection;
 
         //伺服器與mongoDB連線，並生成_chatCollection備用
         public ChatRoomService(IOptions<MongoDBSetting> mongoDBSetting)
         {
             var mongoClient = new MongoClient(mongoDBSetting.Value.ConnectionString);
             var mongoDatabase = mongoClient.GetDatabase(mongoDBSetting.Value.DatabaseName);
-            _chatCollection = mongoDatabase.GetCollection<ChatRoomModels>(mongoDBSetting.Value.ChatCollectionName);
+            _chatRoomCollection = mongoDatabase.GetCollection<ChatRoomModels>(mongoDBSetting.Value.ChatCollectionName);
         }
 
 
         public async Task<(List<string>, SendModel)> GetMemberChatRoomAsync(string _account)
         {
             var filter = Builders<ChatRoomModels>.Filter.AnyEq(x => x.Member, _account);
-            var results = await _chatCollection.Find(filter).ToListAsync();
+            var results = await _chatRoomCollection.Find(filter).ToListAsync();
 
             //生成return value
             SendModel res = new SendModel();
@@ -53,10 +53,10 @@ namespace webChat.Services
             tempModel.chat = new List<ChatModel>();
             tempModel.Member = CreateChatRoomObj.members;
             tempModel.chatRoomName = CreateChatRoomObj.ChatRoomName;
-            await _chatCollection.InsertOneAsync(tempModel);
+            await _chatRoomCollection.InsertOneAsync(tempModel);
 
             var filter = Builders<ChatRoomModels>.Filter.AnyEq(x => x.Member, CreateChatRoomObj.userId);
-            var results = await _chatCollection.Find(filter).ToListAsync();
+            var results = await _chatRoomCollection.Find(filter).ToListAsync();
             resObj.contentObject = JsonConvert.SerializeObject(results);
             resObj.status = MyEnum.ApiStatusCode.Success;
 

@@ -17,7 +17,6 @@ namespace webChat.Controllers;
 
 [Route("[controller]")]
 [ApiController]
-[AllowAnonymous]
 public class ChatRoomController : ControllerBase
 {
     private readonly ChatRoomService _chatRoomService;

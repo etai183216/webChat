@@ -24,16 +24,16 @@ public class WebSocketController : Controller
     public static Dictionary<string, WebSocket> ConnectingUser { get; set; } = new Dictionary<string, WebSocket>();
     public string nowUser = "";
 
-    public WebSocketController(ChatService chatService,ChatRoomService chatRoomService) 
+    public WebSocketController(ChatService chatService, ChatRoomService chatRoomService)
     {
         _chatService = chatService;
         _chatRoomService = chatRoomService;
     }
 
     [HttpGet("/verification")]
-    public  ApiReturnModel verification()
+    public ApiReturnModel verification()
     {
-        ApiReturnModel resObj =  new ApiReturnModel();
+        ApiReturnModel resObj = new ApiReturnModel();
         resObj.status = MyEnum.ApiStatusCode.Success;
         resObj.contentObject = "true";
         return resObj;
@@ -79,19 +79,20 @@ public class WebSocketController : Controller
             SendEntry? receivedObject = Newtonsoft.Json.JsonConvert.DeserializeObject<SendEntry>(receivedMessage);
             if (receivedObject == null) continue;
 
-             MyEnum.EntryType requiredType = receivedObject.Type;
+            MyEnum.EntryType requiredType = receivedObject.Type;
             //進入路由，路由中會透過屬性type決定要進入哪個function，並將結果回傳出來
-            (List<string> members ,SendModel preSendModel) = await wsRouter(receivedObject);
+            (List<string> members, SendModel preSendModel) = await wsRouter(receivedObject);
 
             foreach (string member in members)
             {
-                //將物件轉為Json字串
-                var serializedData = Newtonsoft.Json.JsonConvert.SerializeObject(preSendModel);
-                //再將Json字串轉為可被緩衝區所使用的byte[]類型
-                var dataBytes = Encoding.UTF8.GetBytes(serializedData);
-                //將結果送出
                 if (ConnectingUser.ContainsKey(member))
                 {
+                    //將物件轉為Json字串
+                    var serializedData = Newtonsoft.Json.JsonConvert.SerializeObject(preSendModel);
+                    //再將Json字串轉為可被緩衝區所使用的byte[]類型
+                    var dataBytes = Encoding.UTF8.GetBytes(serializedData);
+                    //將結果送出
+
                     var nowWebsocket = ConnectingUser[member];
                     //用對應到的websocket物件送出訊息
                     await nowWebsocket.SendAsync(
@@ -112,7 +113,7 @@ public class WebSocketController : Controller
         ConnectingUser.Remove(nowUser);
     }
 
-    private async Task<(List<string>,SendModel)> wsRouter(SendEntry? _receivedObject)
+    private async Task<(List<string>, SendModel)> wsRouter(SendEntry? _receivedObject)
     {
         //防呆，如果進來是空值就返回
         if (_receivedObject == null) return (new List<string>(), new SendModel());
